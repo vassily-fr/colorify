@@ -582,7 +582,7 @@ function runAutoCalibration(){
     for(let i=idx;i<end;i++){
       const p=grid[i];
       const edges=computeEdgesAuto(gray,raw.data,w,h,p);
-      const score=scoreEdges(edges,w,h);
+      const score=scoreEdges(edges,raw.data,w,h);
       if(score>bestScore){bestScore=score;best=p;}
       tested++;
     }
@@ -600,7 +600,7 @@ function runAutoCalibration(){
       autoResult.innerHTML=
         `<span class="score-badge">Score ${refined.s.toFixed(3)}</span>`+
         `<span class="score-badge">${currentLang==='fr'?'Densité':'Density'} ${(refined.density*100).toFixed(1)}%</span>`+
-        `<span class="score-badge">${currentLang==='fr'?'Continuité':'Continuity'} ${(refined.cont*100).toFixed(0)}%</span>`+
+        `<span class="score-badge">${currentLang==='fr'?'Alignement':'Chroma align'} ${(refined.cont*100).toFixed(0)}%</span>`+
         `<span class="score-badge">${refined.p.method}</span>`;
       processing.classList.remove('active');
     },0);
@@ -635,7 +635,7 @@ function refine(gray,rawData,w,h,best,bestScore){
     for(const e of pm(best.epsilon,0,0.15,0.01))for(const t of pm(best.tau,0.85,1.0,0.01))
       candidates.push({...best,sigma:s,k,epsilon:e,tau:t});
   let bp=best,bs=bestScore,bd=0,bc=0;
-  for(const p of candidates){const edges=computeEdgesAuto(gray,rawData,w,h,p);const{score,density,cont}=scoreDetailed(edges,w,h);if(score>bs){bs=score;bp=p;bd=density;bc=cont;}}
+  for(const p of candidates){const edges=computeEdgesAuto(gray,rawData,w,h,p);const{score,density,cont}=scoreDetailed(edges,rawData,w,h);if(score>bs){bs=score;bp=p;bd=density;bc=cont;}}
   return{p:bp,s:bs,density:bd,cont:bc};
 }
 
@@ -796,22 +796,89 @@ function dilate(img,w,h,r){
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  SCORE
+//  SCORE — chroma-aware
+//
+//  Idée centrale : un pixel noir est "bon" s'il correspond à une
+//  vraie frontière chromatique dans l'image source.
+//  Un pixel noir sur une zone de couleur uniforme (reflet, texture
+//  légère) est pénalisé.
+//
+//  Critères :
+//  1. Alignement chromatique : pour chaque pixel noir, on mesure
+//     le gradient de couleur de l'image source autour de lui.
+//     Fort gradient = vrai bord → récompensé.
+//     Faible gradient = zone uniforme → pénalisé.
+//  2. Continuité : ratio pixels connectés (traits, pas points)
+//  3. Densité : cible 3-9% (coloriage épuré)
+//  4. Bruit : pénalité pixels isolés
 // ═══════════════════════════════════════════════════════════════
-function scoreDetailed(edges,w,h){
-  const total=w*h;let black=0,connected=0,isolated=0;
-  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
-    if(edges[y*w+x]<128)continue;black++;let nb=0;
-    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(dy===0&&dx===0)continue;const ny=y+dy,nx=x+dx;if(ny>=0&&ny<h&&nx>=0&&nx<w&&edges[ny*w+nx]>=128)nb++;}
-    if(nb>=1)connected++;if(nb===0)isolated++;
+function scoreDetailed(edges, srcData, w, h) {
+  const total = w * h;
+  let black = 0, connected = 0, isolated = 0;
+  let chromaAlignSum = 0; // somme des scores d'alignement chromatique
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (edges[y*w+x] < 128) continue;
+      black++;
+
+      // — Connectivité —
+      let nb = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        if (dy===0 && dx===0) continue;
+        const ny=y+dy, nx=x+dx;
+        if (ny>=0 && ny<h && nx>=0 && nx<w && edges[ny*w+nx]>=128) nb++;
+      }
+      if (nb >= 1) connected++;
+      if (nb === 0) isolated++;
+
+      // — Alignement chromatique —
+      // On calcule le gradient couleur (RGB) dans un voisinage 3x3
+      // en utilisant un opérateur de Sobel couleur.
+      // Plus le gradient est fort, plus ce pixel correspond à un vrai bord.
+      let gxR=0,gxG=0,gxB=0, gyR=0,gyG=0,gyB=0;
+      const KX = [-1,0,1,-2,0,2,-1,0,1];
+      const KY = [-1,-2,-1,0,0,0,1,2,1];
+      for (let ky=0; ky<3; ky++) for (let kx=0; kx<3; kx++) {
+        const py=Math.min(Math.max(y+ky-1,0),h-1);
+        const px=Math.min(Math.max(x+kx-1,0),w-1);
+        const idx=(py*w+px)*4;
+        const r=srcData[idx], g=srcData[idx+1], b=srcData[idx+2];
+        gxR+=r*KX[ky*3+kx]; gxG+=g*KX[ky*3+kx]; gxB+=b*KX[ky*3+kx];
+        gyR+=r*KY[ky*3+kx]; gyG+=g*KY[ky*3+kx]; gyB+=b*KY[ky*3+kx];
+      }
+      // Magnitude du gradient couleur (max des 3 canaux)
+      const magR = Math.sqrt(gxR*gxR + gyR*gyR);
+      const magG = Math.sqrt(gxG*gxG + gyG*gyG);
+      const magB = Math.sqrt(gxB*gxB + gyB*gyB);
+      const chromaGrad = Math.max(magR, magG, magB);
+      // Normaliser : un gradient typique de bord fort ≈ 500-1500, on cible 800
+      // Score sigmoïde : 0 si pas de gradient, 1 si gradient fort
+      const GRAD_TARGET = 600;
+      const alignScore = 1 - 1/(1 + chromaGrad/GRAD_TARGET);
+      chromaAlignSum += alignScore;
+    }
   }
-  const density=black/total,cont=black>0?connected/black:0,noise=black>0?isolated/black:0;
-  const TL=0.04,TH=0.14;
-  let ds=density<TL?density/TL:density>TH?Math.max(0,1-(density-TH)/0.15):1.0;
-  const score=ds*0.40+Math.min(1,cont/0.7)*0.40+Math.max(0,1-noise/0.2)*0.20;
-  return{score,density,cont,noise};
+
+  const density    = black / total;
+  const cont       = black > 0 ? connected / black  : 0;
+  const noise      = black > 0 ? isolated  / black  : 0;
+  const chromaAlign= black > 0 ? chromaAlignSum / black : 0; // 0→1
+
+  // Densité cible réduite : 3-9% (coloriage épuré sans remplissage)
+  const TL=0.025, TH=0.09;
+  let ds = density < TL ? density/TL : density > TH ? Math.max(0, 1-(density-TH)/0.12) : 1.0;
+
+  // Score final — l'alignement chromatique est le critère dominant
+  // car c'est lui qui élimine les reflets/textures internes
+  const score = chromaAlign * 0.45   // vrai bord chromatique → poids fort
+              + Math.min(1,cont/0.7) * 0.25  // traits connectés
+              + ds                   * 0.20  // densité raisonnable
+              + Math.max(0,1-noise/0.2)*0.10; // peu de bruit
+
+  return { score, density, cont, noise, chromaAlign };
 }
-function scoreEdges(edges,w,h){return scoreDetailed(edges,w,h).score;}
+function scoreEdges(edges, srcData, w, h) { return scoreDetailed(edges, srcData, w, h).score; }
 
 // ═══════════════════════════════════════════════════════════════
 //  PRIMITIVES
