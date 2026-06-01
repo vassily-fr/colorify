@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coloriage ✏️</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --yellow: #FFD93D; --orange: #FF6B35; --dark: #1a1a2e;
+    --mid: #16213e; --panel: #0f3460; --white: #f0f0f0; --radius: 16px;
+  }
+  body {
+    font-family: 'Nunito', sans-serif; background: var(--dark); color: var(--white);
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center;
+    padding: 32px 16px 64px;
+    background-image: radial-gradient(ellipse at 20% 10%, #0f346044 0%, transparent 60%),
+                      radial-gradient(ellipse at 80% 80%, #FF6B3511 0%, transparent 60%);
+  }
+
+  /* Lang switcher */
+  .lang-switcher {
+    position: fixed; top: 16px; right: 20px; z-index: 100;
+    display: flex; gap: 6px; align-items: center;
+    background: #0f3460cc; border: 1px solid #2a4a8a;
+    border-radius: 30px; padding: 5px 10px;
+    backdrop-filter: blur(8px);
+  }
+  .lang-btn {
+    background: none; border: none; cursor: pointer; font-size: 1.35rem;
+    border-radius: 50%; padding: 2px 4px; transition: transform 0.15s, opacity 0.15s;
+    opacity: 0.45; line-height: 1;
+  }
+  .lang-btn:hover { opacity: 0.8; transform: scale(1.15); }
+  .lang-btn.active { opacity: 1; transform: scale(1.15); filter: drop-shadow(0 0 4px #fff6); }
+  .lang-sep { color: #3a5a9a; font-size: 0.9rem; user-select: none; }
+
+  h1 { font-size: 2.4rem; font-weight: 900; letter-spacing: -1px; margin-bottom: 6px;
+    background: linear-gradient(135deg, var(--yellow), var(--orange));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .subtitle { font-size: 0.95rem; color: #8899bb; margin-bottom: 36px; }
+  .main-layout { display: flex; gap: 24px; width: 100%; max-width: 1200px; align-items: flex-start; flex-wrap: wrap; }
+
+  .controls { background: var(--panel); border-radius: var(--radius); padding: 24px 20px;
+    min-width: 240px; flex: 0 0 270px; display: flex; flex-direction: column;
+    gap: 16px; box-shadow: 0 8px 32px #0005; }
+  .section-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--orange); margin-bottom: 6px; }
+  .control-group { display: flex; flex-direction: column; gap: 11px; }
+  .slider-row { display: flex; flex-direction: column; gap: 4px; }
+  .slider-header { display: flex; justify-content: space-between; align-items: center;
+    font-size: 0.85rem; font-weight: 700; color: var(--white); }
+  .slider-val { font-size: 0.8rem; color: var(--yellow); min-width: 36px; text-align: right; }
+  input[type=range] { -webkit-appearance: none; width: 100%; height: 5px; border-radius: 3px;
+    background: #1a3a6a; outline: none; cursor: pointer; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px;
+    border-radius: 50%; background: linear-gradient(135deg, var(--yellow), var(--orange));
+    cursor: pointer; box-shadow: 0 2px 6px #0006; transition: transform 0.15s; }
+  input[type=range]::-webkit-slider-thumb:active { transform: scale(1.2); }
+  .hint { font-size: 0.72rem; color: #6677aa; line-height: 1.4; }
+  .badge-algo { display: inline-block; background: #1a254a; border: 1px solid #2a3a7a;
+    border-radius: 6px; padding: 2px 8px; font-size: 0.7rem; color: #aabbee; margin-top: 3px; }
+
+  .btn { border: none; border-radius: 10px; padding: 11px 16px; font-family: 'Nunito', sans-serif;
+    font-weight: 900; font-size: 0.92rem; cursor: pointer; transition: transform 0.12s, box-shadow 0.12s; }
+  .btn:active { transform: scale(0.96); }
+  .btn-primary { background: linear-gradient(135deg, var(--yellow), var(--orange)); color: var(--dark);
+    box-shadow: 0 4px 16px #FF6B3544; }
+  .btn-auto { background: linear-gradient(135deg, #a855f7, #6366f1); color: #fff;
+    box-shadow: 0 4px 16px #a855f744; }
+  .btn-speed { background: #1a3a6a; color: var(--white); border: 1.5px solid #2a4a8a;
+    padding: 8px 4px; font-size: 1rem; line-height: 1.4; text-align: center;
+    border-radius: 10px; transition: all 0.15s; }
+  .btn-speed:hover { background: #2a4a8a; }
+  .btn-speed.active-speed { background: linear-gradient(135deg, #1e3a8a, #4f46e5);
+    border-color: #818cf8; box-shadow: 0 0 0 2px #818cf844; color: #fff; }
+  .btn-secondary { background: #1a3a6a; color: var(--white); border: 1px solid #2a4a8a; }
+  .btn-secondary:hover { background: #2a4a8a; }
+  .btn-dl { background: #0e8a3a; color: #fff; display: none; }
+  .btn-dl.visible { display: block; }
+
+  .auto-progress { display: none; background: #0a1a40; border-radius: 10px; padding: 12px 14px;
+    font-size: 0.78rem; color: #aabbdd; line-height: 1.7; }
+  .auto-progress.active { display: block; }
+  .auto-bar-wrap { background: #1a3a6a; border-radius: 4px; height: 6px; margin-top: 6px; overflow: hidden; }
+  .auto-bar { height: 100%; background: linear-gradient(90deg, #a855f7, #6366f1); border-radius: 4px; transition: width 0.15s; width: 0%; }
+  .score-badge { display: inline-block; background: #1a3a6a; border-radius: 5px;
+    padding: 2px 7px; font-size: 0.72rem; color: var(--yellow); font-weight: 700; margin: 2px 2px 0 0; }
+
+  .canvas-area { flex: 1 1 400px; display: flex; flex-direction: column; gap: 20px; }
+  .drop-zone { background: var(--mid); border: 2.5px dashed #2a4a8a; border-radius: var(--radius);
+    padding: 36px 20px; text-align: center; cursor: pointer;
+    transition: border-color 0.2s, background 0.2s; min-height: 120px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--orange); background: #1a2a50; }
+  .drop-icon { font-size: 2.2rem; }
+  .drop-text { font-size: 0.9rem; color: #8899bb; }
+  .drop-text strong { color: var(--yellow); cursor: pointer; }
+  #fileInput { display: none; }
+  .previews { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .preview-box { background: var(--mid); border-radius: var(--radius); overflow: hidden;
+    position: relative; border: 1.5px solid #1e3060; }
+  .preview-label { position: absolute; top: 10px; left: 10px; background: #000a; color: var(--yellow);
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 6px; backdrop-filter: blur(4px); z-index: 2; }
+  canvas { display: block; width: 100%; height: auto; max-height: 460px; object-fit: contain; background: #fff; }
+  #srcCanvas { background: #111; }
+  .empty-canvas { width: 100%; min-height: 200px; display: flex; align-items: center;
+    justify-content: center; color: #3a4a6a; font-size: 0.85rem; text-align: center; padding: 20px; }
+  .processing-overlay { display: none; position: absolute; inset: 0; background: #000c;
+    align-items: center; justify-content: center; flex-direction: column; gap: 8px;
+    font-size: 0.9rem; color: var(--yellow); font-weight: 700; border-radius: var(--radius); z-index: 10; }
+  .processing-overlay.active { display: flex; }
+  .spin { display: inline-block; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (max-width: 680px) {
+    .main-layout { flex-direction: column; }
+    .controls { flex: 1 1 100%; min-width: unset; }
+    .previews { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Lang switcher -->
+<div class="lang-switcher">
+  <button class="lang-btn active" id="langFR" title="Français">🇫🇷</button>
+  <span class="lang-sep">|</span>
+  <button class="lang-btn" id="langEN" title="English">🇬🇧</button>
+</div>
+
+<h1>✏️ Image → <span data-i18n="title_suffix">Coloriage</span></h1>
+<p class="subtitle" data-i18n="subtitle">Rendu dessin au trait — moteur XDoG + séparation fond/sujet</p>
+
+<div class="main-layout">
+  <aside class="controls">
+
+    <div>
+      <div class="section-label" data-i18n="sec_algo">Algorithme principal</div>
+      <div class="control-group">
+        <div class="slider-row">
+          <div class="slider-header" data-i18n="lbl_method">Méthode</div>
+          <select id="method" style="background:#1a3a6a;border:1px solid #2a4a8a;color:var(--white);border-radius:8px;padding:8px 12px;font-family:'Nunito',sans-serif;font-size:0.85rem;cursor:pointer;outline:none;width:100%">
+            <option value="xdog">XDoG ✨ (<span data-i18n="opt_recommended">recommandé</span>)</option>
+            <option value="xdog+quant">XDoG + <span data-i18n="opt_quant">Quantification couleurs</span></option>
+            <option value="canny">Canny <span data-i18n="opt_classic">classique</span></option>
+            <option value="laplacian">Laplacien <span data-i18n="opt_classic">classique</span></option>
+          </select>
+          <div class="badge-algo" id="algoDesc"></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">XDoG — <span data-i18n="sec_xdog_params">paramètres</span></div>
+      <div class="control-group">
+        <div class="slider-row">
+          <div class="slider-header"><span data-i18n="lbl_sigma">Sigma (finesse)</span> <span class="slider-val" id="sigmaVal">0.8</span></div>
+          <input type="range" id="sigma" min="0.3" max="3.0" step="0.1" value="0.8">
+          <div class="hint" data-i18n="hint_sigma">Rayon du flou de base. Petit = détails fins, grand = contours larges</div>
+        </div>
+        <div class="slider-row">
+          <div class="slider-header"><span data-i18n="lbl_k">k (ratio DoG)</span> <span class="slider-val" id="kVal">4.5</span></div>
+          <input type="range" id="k" min="1.5" max="10" step="0.5" value="4.5">
+          <div class="hint" data-i18n="hint_k">Ratio entre les deux gaussiennes. Haut = contours plus nets</div>
+        </div>
+        <div class="slider-row">
+          <div class="slider-header"><span data-i18n="lbl_epsilon">Epsilon (seuil)</span> <span class="slider-val" id="epsilonVal">0.01</span></div>
+          <input type="range" id="epsilon" min="0.00" max="0.20" step="0.01" value="0.01">
+          <div class="hint" data-i18n="hint_epsilon">Seuil de suppression des zones grises</div>
+        </div>
+        <div class="slider-row">
+          <div class="slider-header"><span data-i18n="lbl_tau">Tau (douceur)</span> <span class="slider-val" id="tauVal">0.96</span></div>
+          <input type="range" id="tau" min="0.80" max="1.00" step="0.01" value="0.96">
+          <div class="hint" data-i18n="hint_tau">Transition noire/blanche. 1.0 = binaire dur</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label" data-i18n="sec_bg">Fond &amp; sujet</div>
+      <div class="control-group">
+        <div class="slider-row">
+          <div class="slider-header"><span data-i18n="lbl_bgremove">Supprimer le fond</span> <span class="slider-val" id="bgRemoveVal" data-i18n-yes="Oui" data-i18n-no="Non">Oui</span></div>
+          <input type="range" id="bgRemove" min="0" max="1" step="1" value="1">
+          <div class="hint" data-i18n="hint_bgremove">Flood-fill depuis les coins → fond toujours blanc</div>
+        </div>
+        <div class="slider-row">
+          <div class="slider-header"><span data-i18n="lbl_bgtol">Tolérance fond</span> <span class="slider-val" id="bgTolVal">30</span></div>
+          <input type="range" id="bgTol" min="5" max="80" step="5" value="30">
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label" data-i18n="sec_post">Post-traitement</div>
+      <div class="control-group">
+        <div class="slider-row">
+          <div class="slider-header"><span data-i18n="lbl_dilate">Épaisseur trait</span> <span class="slider-val" id="dilateVal">0</span></div>
+          <input type="range" id="dilate" min="0" max="3" step="1" value="0">
+        </div>
+        <div class="slider-row">
+          <div class="slider-header"><span data-i18n="lbl_denoise">Suppression bruit</span> <span class="slider-val" id="denoiseVal">1</span></div>
+          <input type="range" id="denoise" min="0" max="3" step="1" value="1">
+          <div class="hint" data-i18n="hint_denoise">Retire les segments isolés trop courts (médiane morphologique)</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label" data-i18n="sec_autocal">Auto-calibration</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+        <button class="btn btn-speed active-speed" id="speedFast" data-speed="fast">⚡<br><span class="speed-label" data-i18n="speed_fast">Rapide</span><br><span style="font-size:0.65rem;font-weight:400;opacity:0.7">~36 passes</span></button>
+        <button class="btn btn-speed"              id="speedMed"  data-speed="med" >⏱<br><span class="speed-label" data-i18n="speed_med">Moyen</span><br><span style="font-size:0.65rem;font-weight:400;opacity:0.7">~720 passes</span></button>
+        <button class="btn btn-speed"              id="speedFull" data-speed="full">🔬<br><span class="speed-label" data-i18n="speed_full">Optimal</span><br><span style="font-size:0.65rem;font-weight:400;opacity:0.7">6000+ passes</span></button>
+      </div>
+      <button class="btn btn-auto" id="autoBtn" data-i18n="btn_auto">🔮 Lancer l'auto-calibration</button>
+    </div>
+
+    <div class="auto-progress" id="autoProgress">
+      <div id="autoStatus" data-i18n="auto_init">Initialisation…</div>
+      <div class="auto-bar-wrap"><div class="auto-bar" id="autoBar"></div></div>
+      <div id="autoResult" style="margin-top:6px"></div>
+    </div>
+
+    <button class="btn btn-primary" id="convertBtn" data-i18n="btn_convert">⚡ Convertir</button>
+    <button class="btn btn-dl" id="downloadBtn" data-i18n="btn_dl">⬇️ Télécharger PNG</button>
+    <button class="btn btn-secondary" id="resetBtn" data-i18n="btn_reset">↩ Réinitialiser</button>
+  </aside>
+
+  <section class="canvas-area">
+    <div class="drop-zone" id="dropZone">
+      <div class="drop-icon">🖼️</div>
+      <div class="drop-text"><span data-i18n="drop_main">Glisse une image ici ou</span> <strong id="browseLink" data-i18n="drop_browse">clique pour parcourir</strong></div>
+      <div class="drop-text" style="font-size:0.78rem" data-i18n="drop_sub">JPG, PNG, WebP — 100% local, aucun envoi serveur</div>
+      <input type="file" id="fileInput" accept="image/*">
+    </div>
+    <div class="previews">
+      <div class="preview-box">
+        <div class="preview-label" data-i18n="label_original">Original</div>
+        <canvas id="srcCanvas"></canvas>
+        <div class="empty-canvas" id="srcEmpty" data-i18n="empty_src">L'image apparaîtra ici</div>
+      </div>
+      <div class="preview-box">
+        <div class="preview-label" data-i18n="label_coloring">Coloriage</div>
+        <div class="processing-overlay" id="processing">
+          <span class="spin">⚙️</span><span id="processingMsg" data-i18n="processing">Traitement…</span>
+        </div>
+        <canvas id="outCanvas"></canvas>
+        <div class="empty-canvas" id="outEmpty" data-i18n="empty_out">Le résultat apparaîtra ici</div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  i18n
+// ═══════════════════════════════════════════════════════════════
+const STRINGS = {
+  fr: {
+    title_suffix:   'Coloriage',
+    subtitle:       'Rendu dessin au trait — moteur XDoG + séparation fond/sujet',
+    sec_algo:       'Algorithme principal',
+    lbl_method:     'Méthode',
+    opt_recommended:'recommandé',
+    opt_quant:      'Quantification couleurs',
+    opt_classic:    'classique',
+    sec_xdog_params:'paramètres',
+    lbl_sigma:      'Sigma (finesse)',
+    hint_sigma:     'Rayon du flou de base. Petit = détails fins, grand = contours larges',
+    lbl_k:          'k (ratio DoG)',
+    hint_k:         'Ratio entre les deux gaussiennes. Haut = contours plus nets',
+    lbl_epsilon:    'Epsilon (seuil)',
+    hint_epsilon:   'Seuil de suppression des zones grises',
+    lbl_tau:        'Tau (douceur)',
+    hint_tau:       'Transition noire/blanche. 1.0 = binaire dur',
+    sec_bg:         'Fond & sujet',
+    lbl_bgremove:   'Supprimer le fond',
+    yes:            'Oui',
+    no:             'Non',
+    hint_bgremove:  'Flood-fill depuis les coins → fond toujours blanc',
+    lbl_bgtol:      'Tolérance fond',
+    sec_post:       'Post-traitement',
+    lbl_dilate:     'Épaisseur trait',
+    lbl_denoise:    'Suppression bruit',
+    hint_denoise:   'Retire les segments isolés trop courts (médiane morphologique)',
+    sec_autocal:    'Auto-calibration',
+    speed_fast:     'Rapide',
+    speed_med:      'Moyen',
+    speed_full:     'Optimal',
+    btn_auto:       "🔮 Lancer l'auto-calibration",
+    auto_init:      'Initialisation…',
+    btn_convert:    '⚡ Convertir',
+    btn_dl:         '⬇️ Télécharger PNG',
+    btn_reset:      '↩ Réinitialiser',
+    drop_main:      'Glisse une image ici ou',
+    drop_browse:    'clique pour parcourir',
+    drop_sub:       'JPG, PNG, WebP — 100% local, aucun envoi serveur',
+    label_original: 'Original',
+    label_coloring: 'Coloriage',
+    empty_src:      "L'image apparaîtra ici",
+    empty_out:      'Le résultat apparaîtra ici',
+    empty_out_ready:"Clique sur ⚡ Convertir ou 🔮 Auto-calibration",
+    processing:     'Traitement…',
+    // dynamic strings
+    algo_xdog:      'Extended Difference of Gaussians — modèle perceptuel humain',
+    algo_xdog_q:    'XDoG après quantification des couleurs (k-means 8 classes)',
+    algo_canny:     'Canny — double seuillage + hysteresis',
+    algo_laplacian: 'Laplacien — dérivée 2nde du signal',
+    auto_analyzing: "Analyse de l'image…",
+    auto_complexity:'Complexité image: {v}% — construction de la grille…',
+    auto_grid:      '{n} combinaisons à tester…',
+    auto_progress:  '{tested}/{total} testées — meilleur score: {score}',
+    auto_refining:  'Affinage…',
+    auto_done:      '✅ Terminé !',
+    auto_label_fast:'⚡ Rapide',
+    auto_label_med: '⏱ Moyen',
+    auto_label_full:'🔬 Optimal',
+    processing_auto:'🔮 Auto-calibration {mode}…',
+    alert_no_image: "Charge d'abord une image !",
+  },
+  en: {
+    title_suffix:   'Coloring Page',
+    subtitle:       'Line art rendering — XDoG engine + background separation',
+    sec_algo:       'Main algorithm',
+    lbl_method:     'Method',
+    opt_recommended:'recommended',
+    opt_quant:      'Color quantization',
+    opt_classic:    'classic',
+    sec_xdog_params:'parameters',
+    lbl_sigma:      'Sigma (sharpness)',
+    hint_sigma:     'Base blur radius. Low = fine details, high = broad outlines',
+    lbl_k:          'k (DoG ratio)',
+    hint_k:         'Ratio between the two Gaussians. High = sharper edges',
+    lbl_epsilon:    'Epsilon (threshold)',
+    hint_epsilon:   'Suppression threshold for grey areas',
+    lbl_tau:        'Tau (softness)',
+    hint_tau:       'Black/white transition. 1.0 = hard binary',
+    sec_bg:         'Background & subject',
+    lbl_bgremove:   'Remove background',
+    yes:            'Yes',
+    no:             'No',
+    hint_bgremove:  'Flood-fill from corners → background always white',
+    lbl_bgtol:      'BG tolerance',
+    sec_post:       'Post-processing',
+    lbl_dilate:     'Line thickness',
+    lbl_denoise:    'Noise removal',
+    hint_denoise:   'Removes short isolated segments (morphological median)',
+    sec_autocal:    'Auto-calibration',
+    speed_fast:     'Fast',
+    speed_med:      'Medium',
+    speed_full:     'Optimal',
+    btn_auto:       '🔮 Run auto-calibration',
+    auto_init:      'Initializing…',
+    btn_convert:    '⚡ Convert',
+    btn_dl:         '⬇️ Download PNG',
+    btn_reset:      '↩ Reset',
+    drop_main:      'Drop an image here or',
+    drop_browse:    'click to browse',
+    drop_sub:       'JPG, PNG, WebP — 100% local, nothing uploaded',
+    label_original: 'Original',
+    label_coloring: 'Coloring page',
+    empty_src:      'Image will appear here',
+    empty_out:      'Result will appear here',
+    empty_out_ready:'Click ⚡ Convert or 🔮 Auto-calibration',
+    processing:     'Processing…',
+    algo_xdog:      'Extended Difference of Gaussians — human perceptual model',
+    algo_xdog_q:    'XDoG after color quantization (k-means 8 classes)',
+    algo_canny:     'Canny — double thresholding + hysteresis',
+    algo_laplacian: 'Laplacian — 2nd derivative of signal',
+    auto_analyzing: 'Analyzing image…',
+    auto_complexity:'Image complexity: {v}% — building search grid…',
+    auto_grid:      'Testing {n} combinations…',
+    auto_progress:  '{tested}/{total} tested — best score: {score}',
+    auto_refining:  'Refining…',
+    auto_done:      '✅ Done!',
+    auto_label_fast:'⚡ Fast',
+    auto_label_med: '⏱ Medium',
+    auto_label_full:'🔬 Optimal',
+    processing_auto:'🔮 Auto-calibration {mode}…',
+    alert_no_image: 'Please load an image first!',
+  }
+};
+
+let currentLang = 'fr';
+
+function t(key, vars) {
+  let s = STRINGS[currentLang][key] || STRINGS['fr'][key] || key;
+  if (vars) Object.entries(vars).forEach(([k,v]) => { s = s.replace('{'+k+'}', v); });
+  return s;
+}
+
+function applyLang() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    el.textContent = t(key);
+  });
+  // Yes/No for bgRemoveVal
+  const bgVal = document.getElementById('bgRemoveVal');
+  if (bgVal) bgVal.textContent = document.getElementById('bgRemove').value === '1' ? t('yes') : t('no');
+  // Algo desc
+  updateAlgoDesc();
+  // Select options — rebuild
+  const sel = document.getElementById('method');
+  const val = sel.value;
+  sel.innerHTML = `
+    <option value="xdog">XDoG ✨ (${t('opt_recommended')})</option>
+    <option value="xdog+quant">XDoG + ${t('opt_quant')}</option>
+    <option value="canny">Canny ${t('opt_classic')}</option>
+    <option value="laplacian">Laplacien ${t('opt_classic')}</option>`;
+  sel.value = val;
+  // outEmpty only if not already loaded
+  const outEmpty = document.getElementById('outEmpty');
+  if (outEmpty && outEmpty.style.display !== 'none') outEmpty.textContent = t('empty_out');
+  const srcEmpty = document.getElementById('srcEmpty');
+  if (srcEmpty && srcEmpty.style.display !== 'none') srcEmpty.textContent = t('empty_src');
+}
+
+function updateAlgoDesc() {
+  const map = { xdog:'algo_xdog', 'xdog+quant':'algo_xdog_q', canny:'algo_canny', laplacian:'algo_laplacian' };
+  const el = document.getElementById('algoDesc');
+  if (el) el.textContent = t(map[document.getElementById('method').value] || 'algo_xdog');
+}
+
+document.getElementById('langFR').addEventListener('click', () => {
+  currentLang = 'fr';
+  document.getElementById('langFR').classList.add('active');
+  document.getElementById('langEN').classList.remove('active');
+  applyLang();
+});
+document.getElementById('langEN').addEventListener('click', () => {
+  currentLang = 'en';
+  document.getElementById('langEN').classList.add('active');
+  document.getElementById('langFR').classList.remove('active');
+  applyLang();
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  UI bindings
+// ═══════════════════════════════════════════════════════════════
+const IDS = ['sigma','k','epsilon','tau','bgRemove','bgTol','dilate','denoise'];
+IDS.forEach(id => {
+  const el = document.getElementById(id);
+  const vEl = document.getElementById(id+'Val');
+  if(el && vEl) el.addEventListener('input', () => {
+    if(id==='bgRemove') {
+      vEl.textContent = el.value==='1' ? t('yes') : t('no');
+      document.getElementById('bgTol').closest('.slider-row').style.opacity = el.value==='1'?'1':'0.4';
+    } else {
+      vEl.textContent = el.value;
+    }
+  });
+});
+
+const methodSel     = document.getElementById('method');
+const convertBtn    = document.getElementById('convertBtn');
+const autoBtn       = document.getElementById('autoBtn');
+const downloadBtn   = document.getElementById('downloadBtn');
+const resetBtn      = document.getElementById('resetBtn');
+const dropZone      = document.getElementById('dropZone');
+const fileInput     = document.getElementById('fileInput');
+const browseLink    = document.getElementById('browseLink');
+const srcCanvas     = document.getElementById('srcCanvas');
+const outCanvas     = document.getElementById('outCanvas');
+const srcCtx        = srcCanvas.getContext('2d');
+const outCtx        = outCanvas.getContext('2d');
+const processing    = document.getElementById('processing');
+const processingMsg = document.getElementById('processingMsg');
+const autoProgress  = document.getElementById('autoProgress');
+const autoStatus    = document.getElementById('autoStatus');
+const autoBar       = document.getElementById('autoBar');
+const autoResult    = document.getElementById('autoResult');
+
+methodSel.addEventListener('change', updateAlgoDesc);
+
+let loadedImage = null;
+
+// Init lang
+applyLang();
+
+// ── Drop zone ────────────────────────────────────────────────
+browseLink.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('click', e => { if(e.target!==browseLink) fileInput.click(); });
+fileInput.addEventListener('change', () => { if(fileInput.files[0]) loadFile(fileInput.files[0]); });
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag-over');
+  const f=e.dataTransfer.files[0];
+  if(f&&f.type.startsWith('image/')) loadFile(f);
+});
+
+function loadFile(file) {
+  const url=URL.createObjectURL(file);
+  const img=new Image();
+  img.onload=()=>{
+    loadedImage=img;
+    const MAX=900; let w=img.width,h=img.height;
+    if(w>MAX||h>MAX){const r=Math.min(MAX/w,MAX/h);w=Math.round(w*r);h=Math.round(h*r);}
+    srcCanvas.width=w;srcCanvas.height=h;
+    srcCtx.drawImage(img,0,0,w,h);
+    document.getElementById('srcEmpty').style.display='none';
+    document.getElementById('outEmpty').textContent=t('empty_out_ready');
+    URL.revokeObjectURL(url);
+  };
+  img.src=url;
+}
+
+// ── Params ───────────────────────────────────────────────────
+function getParams() {
+  return {
+    method:   methodSel.value,
+    sigma:    parseFloat(document.getElementById('sigma').value),
+    k:        parseFloat(document.getElementById('k').value),
+    epsilon:  parseFloat(document.getElementById('epsilon').value),
+    tau:      parseFloat(document.getElementById('tau').value),
+    bgRemove: document.getElementById('bgRemove').value==='1',
+    bgTol:    parseInt(document.getElementById('bgTol').value),
+    dilate:   parseInt(document.getElementById('dilate').value),
+    denoise:  parseInt(document.getElementById('denoise').value),
+    threshLow:40, threshHigh:120,
+  };
+}
+function applyParams(p) {
+  methodSel.value=p.method; updateAlgoDesc();
+  const set=(id,v)=>{
+    document.getElementById(id).value=v;
+    const vEl=document.getElementById(id+'Val');
+    if(vEl) vEl.textContent=(id==='bgRemove')?(v==='1'||v===true?t('yes'):t('no')):v;
+  };
+  set('sigma',p.sigma);set('k',p.k);set('epsilon',p.epsilon);set('tau',p.tau);
+  set('bgRemove',p.bgRemove?'1':'0');set('bgTol',p.bgTol);set('dilate',p.dilate);set('denoise',p.denoise);
+}
+
+// ── Convert ───────────────────────────────────────────────────
+convertBtn.addEventListener('click',()=>{
+  if(!loadedImage){alert(t('alert_no_image'));return;}
+  processingMsg.textContent=t('processing');
+  processing.classList.add('active');
+  setTimeout(()=>{runConversion(getParams());processing.classList.remove('active');},30);
+});
+
+// ── Speed selection ──────────────────────────────────────────
+let selectedSpeed='fast';
+document.querySelectorAll('.btn-speed').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.btn-speed').forEach(b=>b.classList.remove('active-speed'));
+    btn.classList.add('active-speed');
+    selectedSpeed=btn.dataset.speed;
+  });
+});
+
+// ── Auto-calibration ──────────────────────────────────────────
+autoBtn.addEventListener('click',()=>{
+  if(!loadedImage){alert(t('alert_no_image'));return;}
+  autoProgress.classList.add('active');
+  autoResult.innerHTML='';
+  autoBar.style.width='0%';
+  autoStatus.textContent=t('auto_init');
+  const modeLabel=t('auto_label_'+selectedSpeed);
+  processingMsg.textContent=t('processing_auto',{mode:modeLabel});
+  processing.classList.add('active');
+  setTimeout(runAutoCalibration,30);
+});
+
+function runAutoCalibration(){
+  const w=srcCanvas.width,h=srcCanvas.height;
+  const raw=srcCtx.getImageData(0,0,w,h);
+  const gray=toGrayscale(raw.data,w,h);
+  const stats=imageStats(gray);
+  const complexity=imageComplexity(gray,w,h);
+  autoStatus.textContent=t('auto_analyzing');
+  const grid=buildGrid(stats,complexity,selectedSpeed);
+  const total=grid.length;
+  autoStatus.textContent=t('auto_grid',{n:total});
+  let best=null,bestScore=-Infinity,tested=0;
+
+  function chunk(idx){
+    const end=Math.min(idx+8,total);
+    for(let i=idx;i<end;i++){
+      const p=grid[i];
+      const edges=computeEdgesAuto(gray,raw.data,w,h,p);
+      const score=scoreEdges(edges,w,h);
+      if(score>bestScore){bestScore=score;best=p;}
+      tested++;
+    }
+    const pct=Math.round(tested/total*100);
+    autoBar.style.width=pct+'%';
+    autoStatus.textContent=t('auto_progress',{tested,total,score:bestScore.toFixed(3)});
+    if(tested<total){setTimeout(()=>chunk(end),0);return;}
+    autoStatus.textContent=t('auto_refining');
+    setTimeout(()=>{
+      const refined=refine(gray,raw.data,w,h,best,bestScore);
+      applyParams(refined.p);
+      runConversion(refined.p);
+      autoBar.style.width='100%';
+      autoStatus.textContent=t('auto_done');
+      autoResult.innerHTML=
+        `<span class="score-badge">Score ${refined.s.toFixed(3)}</span>`+
+        `<span class="score-badge">${currentLang==='fr'?'Densité':'Density'} ${(refined.density*100).toFixed(1)}%</span>`+
+        `<span class="score-badge">${currentLang==='fr'?'Continuité':'Continuity'} ${(refined.cont*100).toFixed(0)}%</span>`+
+        `<span class="score-badge">${refined.p.method}</span>`;
+      processing.classList.remove('active');
+    },0);
+  }
+  chunk(0);
+}
+
+function buildGrid(stats,complexity,speed='full'){
+  const grid=[];
+  const PRESETS={
+    fast:{sigmas:[0.6,1.0,1.6],ks:[3.0,5.0,8.0],epsilons:[0.0,0.02],taus:[0.94,1.0],denoises:[1],bgTols:[30]},
+    med:{sigmas:[0.4,0.7,1.0,1.5,2.2],ks:[2.5,4.0,6.0,8.5],epsilons:[0.0,0.01,0.04],taus:[0.90,0.95,1.0],denoises:complexity>0.12?[0,1]:[1,2],bgTols:[20,40]},
+    full:{sigmas:[0.4,0.6,0.8,1.0,1.4,2.0,2.6],ks:[2.0,3.0,4.5,6.0,8.0,10.0],epsilons:[0.0,0.01,0.03,0.06,0.10],taus:[0.88,0.92,0.96,0.99,1.0],denoises:complexity>0.12?[0,1]:[1,2],bgTols:[20,35,55]},
+  };
+  const P=PRESETS[speed];
+  for(const sigma of P.sigmas)for(const k of P.ks)for(const epsilon of P.epsilons)for(const tau of P.taus)
+    for(const denoise of P.denoises)for(const bgTol of P.bgTols)
+      grid.push({method:'xdog',sigma,k,epsilon,tau,bgRemove:true,bgTol,dilate:0,denoise,threshLow:40,threshHigh:120});
+  if(speed!=='fast'){
+    const tLows=[Math.max(5,Math.round(stats.std*0.2)),Math.round(stats.std*0.4)];
+    const tHighs=[Math.round(stats.std*0.8),Math.round(stats.std*1.2)];
+    for(const tL of tLows)for(const tH of tHighs)for(const bgTol of [25,40])
+      if(tH>tL)grid.push({method:'canny',sigma:0.8,k:4.5,epsilon:0.01,tau:0.96,bgRemove:true,bgTol,dilate:0,denoise:1,threshLow:tL,threshHigh:tH});
+  }
+  return grid;
+}
+
+function refine(gray,rawData,w,h,best,bestScore){
+  const pm=(v,mn,mx,st)=>{const r=[];for(let x=Math.max(mn,v-st);x<=Math.min(mx,v+st);x+=st)r.push(parseFloat(x.toFixed(4)));return[...new Set(r)];};
+  const candidates=[];
+  for(const s of pm(best.sigma,0.2,3.0,0.2))for(const k of pm(best.k,1.5,10,0.5))
+    for(const e of pm(best.epsilon,0,0.15,0.01))for(const t of pm(best.tau,0.85,1.0,0.01))
+      candidates.push({...best,sigma:s,k,epsilon:e,tau:t});
+  let bp=best,bs=bestScore,bd=0,bc=0;
+  for(const p of candidates){const edges=computeEdgesAuto(gray,rawData,w,h,p);const{score,density,cont}=scoreDetailed(edges,w,h);if(score>bs){bs=score;bp=p;bd=density;bc=cont;}}
+  return{p:bp,s:bs,density:bd,cont:bc};
+}
+
+function computeEdgesAuto(gray,rawData,w,h,p){
+  let edges;
+  if(p.method==='xdog'||p.method==='xdog+quant'){edges=xdog(gray,w,h,p.sigma,p.k,p.epsilon,p.tau);}
+  else if(p.method==='laplacian'){const e=laplacianEdges(gray,w,h);edges=new Float32Array(w*h);for(let i=0;i<e.length;i++)edges[i]=e[i]>p.threshLow?255:0;}
+  else{edges=cannyEdges(gray,w,h,p.threshLow,p.threshHigh);for(let i=0;i<edges.length;i++)edges[i]=255-edges[i];}
+  let bgMask=null;
+  if(p.bgRemove)bgMask=floodFillBackground(rawData,w,h,p.bgTol);
+  if(p.denoise>0)edges=morphologicalDenoise(edges,w,h,p.denoise);
+  if(p.dilate>0)edges=dilate(edges,w,h,p.dilate);
+  if(bgMask)for(let i=0;i<w*h;i++)if(bgMask[i])edges[i]=0;
+  return edges;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PIPELINE
+// ═══════════════════════════════════════════════════════════════
+function runConversion(p){
+  const w=srcCanvas.width,h=srcCanvas.height;
+  const raw=srcCtx.getImageData(0,0,w,h);
+  let gray;
+  if(p.method==='xdog+quant'){const qData=quantizeColors(raw.data,w,h,8);gray=toGrayscale(qData,w,h);}
+  else gray=toGrayscale(raw.data,w,h);
+  let edges;
+  if(p.method==='xdog'||p.method==='xdog+quant'){edges=xdog(gray,w,h,p.sigma,p.k,p.epsilon,p.tau);}
+  else if(p.method==='laplacian'){const e=laplacianEdges(gray,w,h);edges=new Float32Array(w*h);for(let i=0;i<e.length;i++)edges[i]=e[i]>p.threshLow?255:0;}
+  else edges=cannyEdges(gray,w,h,p.threshLow,p.threshHigh);
+  let bgMask=null;
+  if(p.bgRemove)bgMask=floodFillBackground(raw.data,w,h,p.bgTol);
+  if(p.denoise>0)edges=morphologicalDenoise(edges,w,h,p.denoise);
+  if(p.dilate>0)edges=dilate(edges,w,h,p.dilate);
+  outCanvas.width=w;outCanvas.height=h;
+  const out=outCtx.createImageData(w,h);
+  for(let i=0;i<w*h;i++){
+    let v;
+    if(bgMask&&bgMask[i]) v=255;
+    else v=(p.method==='xdog'||p.method==='xdog+quant')?(edges[i]>128?255:0):(edges[i]>128?0:255);
+    out.data[i*4]=out.data[i*4+1]=out.data[i*4+2]=v;out.data[i*4+3]=255;
+  }
+  outCtx.putImageData(out,0,0);
+  document.getElementById('outEmpty').style.display='none';
+  downloadBtn.classList.add('visible');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  XDoG
+// ═══════════════════════════════════════════════════════════════
+function xdog(gray,w,h,sigma,k,epsilon,tau){
+  const g1=gaussianBlurSigma(gray,w,h,sigma);
+  const g2=gaussianBlurSigma(gray,w,h,sigma*k);
+  const dog=new Float32Array(w*h);
+  for(let i=0;i<w*h;i++)dog[i]=g1[i]-g2[i];
+  let mn=Infinity,mx=-Infinity;
+  for(let i=0;i<dog.length;i++){if(dog[i]<mn)mn=dog[i];if(dog[i]>mx)mx=dog[i];}
+  const rng=mx-mn||1;
+  for(let i=0;i<dog.length;i++)dog[i]=(dog[i]-mn)/rng*2-1;
+  const phi=tau*80;
+  const result=new Float32Array(w*h);
+  for(let i=0;i<dog.length;i++){
+    const u=dog[i];
+    result[i]=(u>=epsilon?1.0:Math.max(0,1.0+Math.tanh(phi*(u-epsilon))))*255;
+  }
+  return result;
+}
+
+function gaussianBlurSigma(img,w,h,sigma){
+  const radius=Math.ceil(sigma*3),size=2*radius+1;
+  const kernel=new Float32Array(size);let sum=0;
+  for(let i=0;i<size;i++){const x=i-radius;kernel[i]=Math.exp(-(x*x)/(2*sigma*sigma));sum+=kernel[i];}
+  for(let i=0;i<size;i++)kernel[i]/=sum;
+  const tmp=new Float32Array(w*h);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){let s=0;for(let k=0;k<size;k++){const px=Math.min(Math.max(x+k-radius,0),w-1);s+=img[y*w+px]*kernel[k];}tmp[y*w+x]=s;}
+  const out=new Float32Array(w*h);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){let s=0;for(let k=0;k<size;k++){const py=Math.min(Math.max(y+k-radius,0),h-1);s+=tmp[py*w+x]*kernel[k];}out[y*w+x]=s;}
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  FLOOD FILL BACKGROUND
+// ═══════════════════════════════════════════════════════════════
+function floodFillBackground(data,w,h,tolerance){
+  const mask=new Uint8Array(w*h),visited=new Uint8Array(w*h),queue=[];
+  const corners=[[0,0],[w-1,0],[0,h-1],[w-1,h-1]];
+  let rRef=0,gRef=0,bRef=0;
+  for(const[cx,cy]of corners){const i=(cy*w+cx)*4;rRef+=data[i];gRef+=data[i+1];bRef+=data[i+2];}
+  rRef/=4;gRef/=4;bRef/=4;
+  function enqueue(x,y){
+    const idx=y*w+x;if(visited[idx])return;
+    const i=idx*4,dr=data[i]-rRef,dg=data[i+1]-gRef,db=data[i+2]-bRef;
+    if(Math.sqrt(dr*dr+dg*dg+db*db)<=tolerance*2.0){visited[idx]=1;mask[idx]=1;queue.push(idx);}
+  }
+  for(let x=0;x<w;x++){enqueue(x,0);enqueue(x,h-1);}
+  for(let y=0;y<h;y++){enqueue(0,y);enqueue(w-1,y);}
+  const dirs=[-1,1,-w,w];let qi=0;
+  while(qi<queue.length){
+    const idx=queue[qi++],y=Math.floor(idx/w),x=idx%w;
+    for(const d of dirs){
+      const ni=idx+d;if(ni<0||ni>=w*h||visited[ni])continue;
+      const ny=Math.floor(ni/w),nx=ni%w;
+      if(Math.abs(nx-x)>1||Math.abs(ny-y)>1)continue;
+      const i=ni*4,dr=data[i]-rRef,dg=data[i+1]-gRef,db=data[i+2]-bRef;
+      if(Math.sqrt(dr*dr+dg*dg+db*db)<=tolerance*1.5){visited[ni]=1;mask[ni]=1;queue.push(ni);}
+    }
+  }
+  return mask;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  COLOR QUANTIZATION
+// ═══════════════════════════════════════════════════════════════
+function quantizeColors(data,w,h,k){
+  const n=w*h,step=Math.max(1,Math.floor(n/k));
+  const centers=[];
+  for(let i=0;i<k;i++){const idx=(i*step)*4;centers.push([data[idx],data[idx+1],data[idx+2]]);}
+  const labels=new Int32Array(n);
+  for(let iter=0;iter<5;iter++){
+    for(let i=0;i<n;i++){
+      const r=data[i*4],g=data[i*4+1],b=data[i*4+2];let best=0,bestD=Infinity;
+      for(let c=0;c<k;c++){const dr=r-centers[c][0],dg=g-centers[c][1],db=b-centers[c][2];const d=dr*dr+dg*dg+db*db;if(d<bestD){bestD=d;best=c;}}
+      labels[i]=best;
+    }
+    const sums=Array.from({length:k},()=>[0,0,0,0]);
+    for(let i=0;i<n;i++){const c=labels[i];sums[c][0]+=data[i*4];sums[c][1]+=data[i*4+1];sums[c][2]+=data[i*4+2];sums[c][3]++;}
+    for(let c=0;c<k;c++)if(sums[c][3]>0)centers[c]=[sums[c][0]/sums[c][3],sums[c][1]/sums[c][3],sums[c][2]/sums[c][3]];
+  }
+  const out=new Uint8Array(n*4);
+  for(let i=0;i<n;i++){const c=labels[i];out[i*4]=centers[c][0];out[i*4+1]=centers[c][1];out[i*4+2]=centers[c][2];out[i*4+3]=255;}
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  DENOISING + DILATE
+// ═══════════════════════════════════════════════════════════════
+function morphologicalDenoise(edges,w,h,passes){
+  let e=edges.slice();
+  for(let p=0;p<passes;p++){
+    const out=e.slice();
+    for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
+      if(e[y*w+x]<128)continue;
+      let nb=0;
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(dy===0&&dx===0)continue;if(e[(y+dy)*w+(x+dx)]>=128)nb++;}
+      if(nb===0)out[y*w+x]=0;
+    }
+    e=out;
+  }
+  return e;
+}
+function dilate(img,w,h,r){
+  const out=new Float32Array(w*h);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    let max=0;
+    for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){const py=Math.min(Math.max(y+dy,0),h-1),px=Math.min(Math.max(x+dx,0),w-1);if(img[py*w+px]>max)max=img[py*w+px];}
+    out[y*w+x]=max;
+  }
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SCORE
+// ═══════════════════════════════════════════════════════════════
+function scoreDetailed(edges,w,h){
+  const total=w*h;let black=0,connected=0,isolated=0;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    if(edges[y*w+x]<128)continue;black++;let nb=0;
+    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){if(dy===0&&dx===0)continue;const ny=y+dy,nx=x+dx;if(ny>=0&&ny<h&&nx>=0&&nx<w&&edges[ny*w+nx]>=128)nb++;}
+    if(nb>=1)connected++;if(nb===0)isolated++;
+  }
+  const density=black/total,cont=black>0?connected/black:0,noise=black>0?isolated/black:0;
+  const TL=0.04,TH=0.14;
+  let ds=density<TL?density/TL:density>TH?Math.max(0,1-(density-TH)/0.15):1.0;
+  const score=ds*0.40+Math.min(1,cont/0.7)*0.40+Math.max(0,1-noise/0.2)*0.20;
+  return{score,density,cont,noise};
+}
+function scoreEdges(edges,w,h){return scoreDetailed(edges,w,h).score;}
+
+// ═══════════════════════════════════════════════════════════════
+//  PRIMITIVES
+// ═══════════════════════════════════════════════════════════════
+function toGrayscale(data,w,h){const g=new Float32Array(w*h);for(let i=0;i<w*h;i++)g[i]=0.299*data[i*4]+0.587*data[i*4+1]+0.114*data[i*4+2];return g;}
+function imageStats(gray){let sum=0,sumSq=0;for(let i=0;i<gray.length;i++){sum+=gray[i];sumSq+=gray[i]*gray[i];}const mean=sum/gray.length;return{mean,std:Math.sqrt(sumSq/gray.length-mean*mean)};}
+function imageComplexity(gray,w,h){let t=0;for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const d=Math.abs(gray[y*w+x]-gray[y*w+x-1])+Math.abs(gray[y*w+x]-gray[(y-1)*w+x]);if(d>20)t++;}return t/(w*h);}
+function convolve(img,w,h,kernel,kSize){const half=Math.floor(kSize/2),out=new Float32Array(w*h);for(let y=0;y<h;y++)for(let x=0;x<w;x++){let s=0;for(let ky=0;ky<kSize;ky++)for(let kx=0;kx<kSize;kx++){const py=Math.min(Math.max(y+ky-half,0),h-1),px=Math.min(Math.max(x+kx-half,0),w-1);s+=img[py*w+px]*kernel[ky*kSize+kx];}out[y*w+x]=s;}return out;}
+function laplacianEdges(img,w,h){const r=convolve(img,w,h,[0,1,0,1,-4,1,0,1,0],3);const out=new Float32Array(w*h);let max=0;for(let i=0;i<r.length;i++){out[i]=Math.abs(r[i]);if(out[i]>max)max=out[i];}for(let i=0;i<out.length;i++)out[i]=out[i]/max*255;return out;}
+function cannyEdges(img,w,h,tLow,tHigh){
+  const kx=[-1,0,1,-2,0,2,-1,0,1],ky=[-1,-2,-1,0,0,0,1,2,1];
+  const gx=convolve(img,w,h,kx,3),gy=convolve(img,w,h,ky,3);
+  const mag=new Float32Array(w*h),dir=new Float32Array(w*h);let maxMag=0;
+  for(let i=0;i<w*h;i++){mag[i]=Math.sqrt(gx[i]*gx[i]+gy[i]*gy[i]);dir[i]=Math.atan2(gy[i],gx[i]);if(mag[i]>maxMag)maxMag=mag[i];}
+  for(let i=0;i<mag.length;i++)mag[i]=mag[i]/maxMag*255;
+  const nms=new Float32Array(w*h);
+  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
+    const idx=y*w+x,a=((dir[idx]*180/Math.PI)%180+180)%180;
+    let n1,n2;
+    if(a<22.5||a>=157.5){n1=mag[y*w+(x-1)];n2=mag[y*w+(x+1)];}
+    else if(a<67.5){n1=mag[(y-1)*w+(x+1)];n2=mag[(y+1)*w+(x-1)];}
+    else if(a<112.5){n1=mag[(y-1)*w+x];n2=mag[(y+1)*w+x];}
+    else{n1=mag[(y-1)*w+(x-1)];n2=mag[(y+1)*w+(x+1)];}
+    nms[idx]=(mag[idx]>=n1&&mag[idx]>=n2)?mag[idx]:0;
+  }
+  const out=new Uint8Array(w*h),S=255,W=128;
+  for(let i=0;i<nms.length;i++){if(nms[i]>=tHigh)out[i]=S;else if(nms[i]>=tLow)out[i]=W;}
+  const nb=[-1,-1,-1,0,-1,1,0,-1,0,1,1,-1,1,0,1,1];
+  for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){
+    if(out[y*w+x]!==W)continue;let has=false;
+    for(let k=0;k<8;k++){const ny=y+nb[k*2],nx=x+nb[k*2+1];if(out[ny*w+nx]===S){has=true;break;}}
+    out[y*w+x]=has?S:0;
+  }
+  return new Float32Array(out);
+}
+
+// ── Download / Reset ─────────────────────────────────────────
+downloadBtn.addEventListener('click',()=>{const a=document.createElement('a');a.download='coloriage.png';a.href=outCanvas.toDataURL('image/png');a.click();});
+resetBtn.addEventListener('click',()=>{
+  loadedImage=null;srcCanvas.width=outCanvas.width=0;
+  document.getElementById('srcEmpty').style.display='';
+  document.getElementById('outEmpty').style.display='';
+  document.getElementById('outEmpty').textContent=t('empty_out');
+  downloadBtn.classList.remove('visible');
+  autoProgress.classList.remove('active');
+  fileInput.value='';
+});
+</script>
+</body>
+</html>
