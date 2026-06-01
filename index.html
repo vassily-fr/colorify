@@ -156,8 +156,8 @@
       <div class="section-label">XDoG — <span data-i18n="sec_xdog_params">paramètres</span></div>
       <div class="control-group">
         <div class="slider-row">
-          <div class="slider-header"><span data-i18n="lbl_sigma">Sigma (finesse)</span> <span class="slider-val" id="sigmaVal">0.8</span></div>
-          <input type="range" id="sigma" min="0.3" max="3.0" step="0.1" value="0.8">
+          <div class="slider-header"><span data-i18n="lbl_sigma">Sigma (finesse)</span> <span class="slider-val" id="sigmaVal">1.2</span></div>
+          <input type="range" id="sigma" min="0.3" max="3.0" step="0.1" value="1.2">
           <div class="hint" data-i18n="hint_sigma">Rayon du flou de base. Petit = détails fins, grand = contours larges</div>
         </div>
         <div class="slider-row">
@@ -197,13 +197,18 @@
       <div class="section-label" data-i18n="sec_post">Post-traitement</div>
       <div class="control-group">
         <div class="slider-row">
-          <div class="slider-header"><span data-i18n="lbl_dilate">Épaisseur trait</span> <span class="slider-val" id="dilateVal">0</span></div>
-          <input type="range" id="dilate" min="0" max="3" step="1" value="0">
+          <div class="slider-header"><span data-i18n="lbl_dilate">Épaisseur trait</span> <span class="slider-val" id="dilateVal">1</span></div>
+          <input type="range" id="dilate" min="0" max="3" step="1" value="1">
         </div>
         <div class="slider-row">
           <div class="slider-header"><span data-i18n="lbl_denoise">Suppression bruit</span> <span class="slider-val" id="denoiseVal">1</span></div>
           <input type="range" id="denoise" min="0" max="3" step="1" value="1">
           <div class="hint" data-i18n="hint_denoise">Retire les segments isolés trop courts (médiane morphologique)</div>
+        </div>
+        <div class="slider-row">
+          <div class="slider-header"><span data-i18n="lbl_colorSens">Seuil couleur</span> <span class="slider-val" id="colorSensVal">0.10</span></div>
+          <input type="range" id="colorSens" min="0.02" max="0.30" step="0.02" value="0.10">
+          <div class="hint" data-i18n="hint_colorSens">Seuil détection contours couleur — bas = plus de contours</div>
         </div>
       </div>
     </div>
@@ -287,6 +292,8 @@ const STRINGS = {
     lbl_dilate:     'Épaisseur trait',
     lbl_denoise:    'Suppression bruit',
     hint_denoise:   'Retire les segments isolés trop courts (médiane morphologique)',
+    lbl_colorSens:  'Seuil couleur',
+    hint_colorSens: 'Seuil détection contours couleur — bas = plus de contours',
     sec_autocal:    'Auto-calibration',
     speed_fast:     'Rapide',
     speed_med:      'Moyen',
@@ -351,6 +358,8 @@ const STRINGS = {
     lbl_dilate:     'Line thickness',
     lbl_denoise:    'Noise removal',
     hint_denoise:   'Removes short isolated segments (morphological median)',
+    lbl_colorSens:  'Color threshold',
+    hint_colorSens: 'Color edge detection sensitivity — low = more contours',
     sec_autocal:    'Auto-calibration',
     speed_fast:     'Fast',
     speed_med:      'Medium',
@@ -445,7 +454,7 @@ document.getElementById('langEN').addEventListener('click', () => {
 // ═══════════════════════════════════════════════════════════════
 //  UI bindings
 // ═══════════════════════════════════════════════════════════════
-const IDS = ['sigma','k','epsilon','tau','bgRemove','bgTol','dilate','denoise'];
+const IDS = ['sigma','k','epsilon','tau','bgRemove','bgTol','dilate','denoise','colorSens'];
 IDS.forEach(id => {
   const el = document.getElementById(id);
   const vEl = document.getElementById(id+'Val');
@@ -525,6 +534,7 @@ function getParams() {
     bgTol:    parseInt(document.getElementById('bgTol').value),
     dilate:   parseInt(document.getElementById('dilate').value),
     denoise:  parseInt(document.getElementById('denoise').value),
+    colorSens:parseFloat(document.getElementById('colorSens').value),
     threshLow:40, threshHigh:120,
   };
 }
@@ -537,6 +547,7 @@ function applyParams(p) {
   };
   set('sigma',p.sigma);set('k',p.k);set('epsilon',p.epsilon);set('tau',p.tau);
   set('bgRemove',p.bgRemove?'1':'0');set('bgTol',p.bgTol);set('dilate',p.dilate);set('denoise',p.denoise);
+  set('colorSens',p.colorSens!==undefined?p.colorSens:0.10);
 }
 
 // ── Convert ───────────────────────────────────────────────────
@@ -571,6 +582,7 @@ autoBtn.addEventListener('click',()=>{
 });
 
 function runAutoCalibration(){
+  _cgCache={};  // vide le cache des gradients couleur (nouvelle image/résolution)
   const w=srcCanvas.width,h=srcCanvas.height;
   const raw=srcCtx.getImageData(0,0,w,h);
   const gray=toGrayscale(raw.data,w,h);
@@ -624,12 +636,12 @@ function buildGrid(stats,complexity,speed='full'){
   const P=PRESETS[speed];
   for(const sigma of P.sigmas)for(const k of P.ks)for(const epsilon of P.epsilons)for(const tau of P.taus)
     for(const denoise of P.denoises)for(const bgTol of P.bgTols)
-      grid.push({method:'xdog',sigma,k,epsilon,tau,bgRemove:true,bgTol,dilate:0,denoise,threshLow:40,threshHigh:120});
+      grid.push({method:'xdog',sigma,k,epsilon,tau,bgRemove:true,bgTol,dilate:0,denoise,colorSens:0.10,threshLow:40,threshHigh:120});
   if(speed!=='fast'){
     const tLows=[Math.max(5,Math.round(stats.std*0.2)),Math.round(stats.std*0.4)];
     const tHighs=[Math.round(stats.std*0.8),Math.round(stats.std*1.2)];
     for(const tL of tLows)for(const tH of tHighs)for(const bgTol of [25,40])
-      if(tH>tL)grid.push({method:'canny',sigma:0.8,k:4.5,epsilon:0.01,tau:0.96,bgRemove:true,bgTol,dilate:0,denoise:1,threshLow:tL,threshHigh:tH});
+      if(tH>tL)grid.push({method:'canny',sigma:0.8,k:4.5,epsilon:0.01,tau:0.96,bgRemove:true,bgTol,dilate:0,denoise:1,colorSens:0.10,threshLow:tL,threshHigh:tH});
   }
   return grid;
 }
@@ -639,48 +651,101 @@ function refine(gray,rawData,w,h,best,bestScore){
   const candidates=[];
   for(const s of pm(best.sigma,0.2,3.0,0.2))for(const k of pm(best.k,1.5,10,0.5))
     for(const e of pm(best.epsilon,0,0.15,0.01))for(const t of pm(best.tau,0.85,1.0,0.01))
-      candidates.push({...best,sigma:s,k,epsilon:e,tau:t});
+      candidates.push({...best,sigma:s,k,epsilon:e,tau:t,colorSens:best.colorSens||0.10});
   let bp=best,bs=bestScore,bd=0,bc=0;
   for(const p of candidates){const edges=computeEdgesAuto(gray,rawData,w,h,p);const{score,density,cont}=scoreDetailed(edges,rawData,w,h);if(score>bs){bs=score;bp=p;bd=density;bc=cont;}}
   return{p:bp,s:bs,density:bd,cont:bc};
 }
 
 function computeEdgesAuto(gray,rawData,w,h,p){
-  let edges;
-  if(p.method==='xdog'||p.method==='xdog+quant'){edges=xdog(gray,w,h,p.sigma,p.k,p.epsilon,p.tau);}
-  else if(p.method==='laplacian'){const e=laplacianEdges(gray,w,h);edges=new Float32Array(w*h);for(let i=0;i<e.length;i++)edges[i]=e[i]>p.threshLow?255:0;}
-  else{edges=cannyEdges(gray,w,h,p.threshLow,p.threshHigh);for(let i=0;i<edges.length;i++)edges[i]=255-edges[i];}
-  let bgMask=null;
-  if(p.bgRemove)bgMask=floodFillBackground(rawData,w,h,p.bgTol);
-  if(p.denoise>0)edges=morphologicalDenoise(edges,w,h,p.denoise);
-  if(p.dilate>0)edges=dilate(edges,w,h,p.dilate);
-  if(bgMask)for(let i=0;i<w*h;i++)if(bgMask[i])edges[i]=0;
-  return edges;
+  // Couche 1 : XDoG / Canny / Laplacian
+  let xdogEdges;
+  if(p.method==='xdog'||p.method==='xdog+quant'){
+    xdogEdges=xdog(gray,w,h,p.sigma,p.k,p.epsilon,p.tau);
+  }else if(p.method==='laplacian'){
+    const e=laplacianEdges(gray,w,h);
+    xdogEdges=new Float32Array(w*h);
+    for(let i=0;i<e.length;i++)xdogEdges[i]=e[i]>p.threshLow?255:0;
+  }else{
+    xdogEdges=cannyEdges(gray,w,h,p.threshLow,p.threshHigh);
+  }
+  // Couche 2 : masque fond
+  const bgMask=p.bgRemove?floodFillBackground(rawData,w,h,p.bgTol):null;
+  // Couche 3 : silhouette épaissie
+  let silhouette=new Float32Array(w*h);
+  if(bgMask)silhouette=dilate(extractSilhouette(bgMask,w,h),w,h,2);
+  // Couche 4 : gradient couleur (mis en cache)
+  const colorEdges=colorGradientEdges(rawData,w,h,p.colorSens||0.10);
+  // Fusion
+  const merged=new Float32Array(w*h);
+  for(let i=0;i<w*h;i++){
+    if(bgMask&&bgMask[i])continue;
+    if(xdogEdges[i]>=128||silhouette[i]>=128||colorEdges[i]>=128)merged[i]=255;
+  }
+  // Post-traitement
+  let result=merged;
+  if(p.denoise>0){
+    result=morphologicalDenoise(result,w,h,p.denoise);
+    result=removeSmallComponents(result,w,h,8*p.denoise);
+  }
+  if(p.dilate>0)result=dilate(result,w,h,p.dilate);
+  // Garantit que le fond est à 0 (blanc dans l'affichage)
+  if(bgMask)for(let i=0;i<w*h;i++)if(bgMask[i])result[i]=0;
+  return result;
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  PIPELINE
+//  PIPELINE principal
 // ═══════════════════════════════════════════════════════════════
 function runConversion(p){
   const w=srcCanvas.width,h=srcCanvas.height;
   const raw=srcCtx.getImageData(0,0,w,h);
+
+  // Couche 1 : détection de bords (XDoG / Canny / Laplacian)
   let gray;
   if(p.method==='xdog+quant'){const qData=quantizeColors(raw.data,w,h,8);gray=toGrayscale(qData,w,h);}
   else gray=toGrayscale(raw.data,w,h);
-  let edges;
-  if(p.method==='xdog'||p.method==='xdog+quant'){edges=xdog(gray,w,h,p.sigma,p.k,p.epsilon,p.tau);}
-  else if(p.method==='laplacian'){const e=laplacianEdges(gray,w,h);edges=new Float32Array(w*h);for(let i=0;i<e.length;i++)edges[i]=e[i]>p.threshLow?255:0;}
-  else edges=cannyEdges(gray,w,h,p.threshLow,p.threshHigh);
-  let bgMask=null;
-  if(p.bgRemove)bgMask=floodFillBackground(raw.data,w,h,p.bgTol);
-  if(p.denoise>0)edges=morphologicalDenoise(edges,w,h,p.denoise);
-  if(p.dilate>0)edges=dilate(edges,w,h,p.dilate);
+  let xdogEdges;
+  if(p.method==='xdog'||p.method==='xdog+quant'){
+    xdogEdges=xdog(gray,w,h,p.sigma,p.k,p.epsilon,p.tau);
+  }else if(p.method==='laplacian'){
+    const e=laplacianEdges(gray,w,h);
+    xdogEdges=new Float32Array(w*h);
+    for(let i=0;i<e.length;i++)xdogEdges[i]=e[i]>p.threshLow?255:0;
+  }else{
+    xdogEdges=cannyEdges(gray,w,h,p.threshLow,p.threshHigh);
+  }
+
+  // Couche 2 : masque fond (flood-fill)
+  const bgMask=p.bgRemove?floodFillBackground(raw.data,w,h,p.bgTol):null;
+
+  // Couche 3 : silhouette sujet — contour externe épais
+  let silhouette=new Float32Array(w*h);
+  if(bgMask)silhouette=dilate(extractSilhouette(bgMask,w,h),w,h,2);
+
+  // Couche 4 : gradient couleur — rattrape les bords chromatiques
+  const colorEdges=colorGradientEdges(raw.data,w,h,p.colorSens||0.10);
+
+  // Fusion : OR des 3 couches, fond exclu
+  const merged=new Float32Array(w*h);
+  for(let i=0;i<w*h;i++){
+    if(bgMask&&bgMask[i])continue;
+    if(xdogEdges[i]>=128||silhouette[i]>=128||colorEdges[i]>=128)merged[i]=255;
+  }
+
+  // Post-traitement
+  let result=merged;
+  if(p.denoise>0){
+    result=morphologicalDenoise(result,w,h,p.denoise);
+    result=removeSmallComponents(result,w,h,8*p.denoise);
+  }
+  if(p.dilate>0)result=dilate(result,w,h,p.dilate);
+
+  // Rendu : bord → noir (0), fond/vide → blanc (255)
   outCanvas.width=w;outCanvas.height=h;
   const out=outCtx.createImageData(w,h);
   for(let i=0;i<w*h;i++){
-    let v;
-    if(bgMask&&bgMask[i]) v=255;
-    else v=(p.method==='xdog'||p.method==='xdog+quant')?(edges[i]>128?255:0):(edges[i]>128?0:255);
+    const v=(bgMask&&bgMask[i])?255:(result[i]>=128?0:255);
     out.data[i*4]=out.data[i*4+1]=out.data[i*4+2]=v;out.data[i*4+3]=255;
   }
   outCtx.putImageData(out,0,0);
@@ -802,6 +867,88 @@ function dilate(img,w,h,r){
 }
 
 // ═══════════════════════════════════════════════════════════════
+//  SILHOUETTE — extraction depuis le masque fond (bgMask)
+//  Renvoie les pixels du sujet immédiatement adjacents au fond.
+//  Après dilatation → contour externe épais garanti.
+// ═══════════════════════════════════════════════════════════════
+function extractSilhouette(bgMask,w,h){
+  const out=new Float32Array(w*h);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    if(bgMask[y*w+x])continue;           // pixel fond → skip
+    let hasBg=false;
+    for(let dy=-1;dy<=1&&!hasBg;dy++)for(let dx=-1;dx<=1&&!hasBg;dx++){
+      if(dy===0&&dx===0)continue;
+      const ny=y+dy,nx=x+dx;
+      if(ny>=0&&ny<h&&nx>=0&&nx<w&&bgMask[ny*w+nx])hasBg=true;
+    }
+    if(hasBg)out[y*w+x]=255;
+  }
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  GRADIENT COULEUR — détecte les bords chromatiques
+//  Travaille sur les 3 canaux RGB indépendamment.
+//  Essentiel pour les imprimés couleur (orange/magenta sur jaune)
+//  qui ont peu de contraste en niveaux de gris.
+//  Cache par (w,h,threshold) — réutilisé dans l'auto-calibration.
+// ═══════════════════════════════════════════════════════════════
+let _cgCache={};
+function colorGradientEdges(data,w,h,threshold){
+  const key=`${w}_${h}_${threshold.toFixed(3)}`;
+  if(_cgCache[key])return _cgCache[key];
+  const SIGMA=1.5,n=w*h;
+  const KX=[-1,0,1,-2,0,2,-1,0,1],KY=[-1,-2,-1,0,0,0,1,2,1];
+  const grad=new Float32Array(n);
+  let maxG=0;
+  for(let c=0;c<3;c++){
+    const ch=new Float32Array(n);
+    for(let i=0;i<n;i++)ch[i]=data[i*4+c];
+    const bl=gaussianBlurSigma(ch,w,h,SIGMA);
+    const gx=convolve(bl,w,h,KX,3);
+    const gy=convolve(bl,w,h,KY,3);
+    for(let i=0;i<n;i++){const m=Math.sqrt(gx[i]*gx[i]+gy[i]*gy[i]);if(m>grad[i])grad[i]=m;if(m>maxG)maxG=m;}
+  }
+  const thr=threshold*maxG;
+  const out=new Float32Array(n);
+  for(let i=0;i<n;i++)out[i]=grad[i]>=thr?255:0;
+  _cgCache[key]=out;
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  FILTRAGE COMPOSANTES CONNEXES — élimine les points isolés
+//  et les petits segments qui survivent au morphologicalDenoise.
+//  BFS 8-connexe. minSize en pixels.
+// ═══════════════════════════════════════════════════════════════
+function removeSmallComponents(edges,w,h,minSize){
+  const n=w*h;
+  const labels=new Int32Array(n).fill(-1);
+  const sizes=[];
+  let nextLabel=0;
+  for(let start=0;start<n;start++){
+    if(edges[start]<128||labels[start]>=0)continue;
+    const label=nextLabel++;sizes.push(0);
+    const queue=[start];labels[start]=label;
+    let qi=0;
+    while(qi<queue.length){
+      const idx=queue[qi++];sizes[label]++;
+      const y=Math.floor(idx/w),x=idx%w;
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+        if(dy===0&&dx===0)continue;
+        const ny=y+dy,nx=x+dx;
+        if(ny<0||ny>=h||nx<0||nx>=w)continue;
+        const ni=ny*w+nx;
+        if(edges[ni]>=128&&labels[ni]<0){labels[ni]=label;queue.push(ni);}
+      }
+    }
+  }
+  const out=edges.slice();
+  for(let i=0;i<n;i++){if(labels[i]>=0&&sizes[labels[i]]<minSize)out[i]=0;}
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════════════
 //  SCORE — chroma-aware
 //
 //  Idée centrale : un pixel noir est "bon" s'il correspond à une
@@ -825,7 +972,7 @@ function scoreDetailed(edges, srcData, w, h) {
 
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
-      if (edges[y*w+x] < 128) continue;
+      if (edges[y*w+x] < 128) continue; // pixel blanc (fond) → skip
       black++;
 
       // — Connectivité —
@@ -871,16 +1018,23 @@ function scoreDetailed(edges, srcData, w, h) {
   const noise      = black > 0 ? isolated  / black  : 0;
   const chromaAlign= black > 0 ? chromaAlignSum / black : 0; // 0→1
 
-  // Densité cible réduite : 3-9% (coloriage épuré sans remplissage)
-  const TL=0.025, TH=0.09;
-  let ds = density < TL ? density/TL : density > TH ? Math.max(0, 1-(density-TH)/0.12) : 1.0;
+  // Densité : gate dur — on veut 3-10% de pixels noirs (coloriage épuré)
+  // En dehors de cette plage, le score s'effondre indépendamment des autres critères
+  const TL=0.025, TH=0.14;
+  let ds;
+  if (density < 0.005) ds = 0;
+  else if (density < TL) ds = density / TL;
+  else if (density <= TH) ds = 1.0;
+  else if (density <= 0.25) ds = Math.max(0, 1-(density-TH)/0.11);
+  else ds = 0;
 
-  // Score final — l'alignement chromatique est le critère dominant
-  // car c'est lui qui élimine les reflets/textures internes
-  const score = chromaAlign * 0.45   // vrai bord chromatique → poids fort
-              + Math.min(1,cont/0.7) * 0.25  // traits connectés
-              + ds                   * 0.20  // densité raisonnable
-              + Math.max(0,1-noise/0.2)*0.10; // peu de bruit
+  // La densité est un multiplicateur global : si hors plage, tout s'effondre
+  // Cela évite qu'un bon chromaAlign sur une image tout-noire trompe l'algo
+  const qualityScore = chromaAlign * 0.55   // vrai bord chromatique → critère principal
+                     + Math.min(1,cont/0.7) * 0.30  // traits connectés
+                     + Math.max(0,1-noise/0.2)*0.15; // peu de bruit isolé
+
+  const score = qualityScore * ds; // densité = gate multiplicatif
 
   return { score, density, cont, noise, chromaAlign };
 }
