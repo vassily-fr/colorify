@@ -210,10 +210,11 @@
 
     <div>
       <div class="section-label" data-i18n="sec_autocal">Auto-calibration</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
-        <button class="btn btn-speed active-speed" id="speedFast" data-speed="fast">⚡<br><span class="speed-label" data-i18n="speed_fast">Rapide</span><br><span style="font-size:0.65rem;font-weight:400;opacity:0.7">~36 passes</span></button>
-        <button class="btn btn-speed"              id="speedMed"  data-speed="med" >⏱<br><span class="speed-label" data-i18n="speed_med">Moyen</span><br><span style="font-size:0.65rem;font-weight:400;opacity:0.7">~720 passes</span></button>
-        <button class="btn btn-speed"              id="speedFull" data-speed="full">🔬<br><span class="speed-label" data-i18n="speed_full">Optimal</span><br><span style="font-size:0.65rem;font-weight:400;opacity:0.7">6000+ passes</span></button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+        <button class="btn btn-speed active-speed" id="speedFast" data-speed="fast">⚡<br><span class="speed-label" data-i18n="speed_fast">Rapide</span><br><span style="font-size:0.65rem;font-weight:400;opacity:0.7">~36 passes</span><br><span style="font-size:0.75rem">📱✅</span></button>
+        <button class="btn btn-speed"              id="speedMed"  data-speed="med" >⏱<br><span class="speed-label" data-i18n="speed_med">Moyen</span><br><span style="font-size:0.65rem;font-weight:400;opacity:0.7">~720 passes</span><br><span style="font-size:0.75rem">📱⚠️</span></button>
+        <button class="btn btn-speed"              id="speedAdv"  data-speed="adv" >🎯<br><span class="speed-label" data-i18n="speed_adv">Avancé</span><br><span style="font-size:0.65rem;font-weight:400;opacity:0.7">~3000 passes</span><br><span style="font-size:0.75rem">🖥️ ⚠️</span></button>
+        <button class="btn btn-speed"              id="speedFull" data-speed="full">🔬<br><span class="speed-label" data-i18n="speed_full">Optimal</span><br><span style="font-size:0.65rem;font-weight:400;opacity:0.7">6000+ passes</span><br><span style="font-size:0.75rem">🖥️ only</span></button>
       </div>
       <button class="btn btn-auto" id="autoBtn" data-i18n="btn_auto">🔮 Lancer l'auto-calibration</button>
     </div>
@@ -289,6 +290,7 @@ const STRINGS = {
     sec_autocal:    'Auto-calibration',
     speed_fast:     'Rapide',
     speed_med:      'Moyen',
+    speed_adv:      'Avancé',
     speed_full:     'Optimal',
     btn_auto:       "🔮 Lancer l'auto-calibration",
     auto_init:      'Initialisation…',
@@ -317,6 +319,7 @@ const STRINGS = {
     auto_done:      '✅ Terminé !',
     auto_label_fast:'⚡ Rapide',
     auto_label_med: '⏱ Moyen',
+    auto_label_adv: '🎯 Avancé',
     auto_label_full:'🔬 Optimal',
     processing_auto:'🔮 Auto-calibration {mode}…',
     alert_no_image: "Charge d'abord une image !",
@@ -351,6 +354,7 @@ const STRINGS = {
     sec_autocal:    'Auto-calibration',
     speed_fast:     'Fast',
     speed_med:      'Medium',
+    speed_adv:      'Advanced',
     speed_full:     'Optimal',
     btn_auto:       '🔮 Run auto-calibration',
     auto_init:      'Initializing…',
@@ -378,6 +382,7 @@ const STRINGS = {
     auto_done:      '✅ Done!',
     auto_label_fast:'⚡ Fast',
     auto_label_med: '⏱ Medium',
+    auto_label_adv: '🎯 Advanced',
     auto_label_full:'🔬 Optimal',
     processing_auto:'🔮 Auto-calibration {mode}…',
     alert_no_image: 'Please load an image first!',
@@ -613,6 +618,7 @@ function buildGrid(stats,complexity,speed='full'){
   const PRESETS={
     fast:{sigmas:[0.6,1.0,1.6],ks:[3.0,5.0,8.0],epsilons:[0.0,0.02],taus:[0.94,1.0],denoises:[1],bgTols:[30]},
     med:{sigmas:[0.4,0.7,1.0,1.5,2.2],ks:[2.5,4.0,6.0,8.5],epsilons:[0.0,0.01,0.04],taus:[0.90,0.95,1.0],denoises:complexity>0.12?[0,1]:[1,2],bgTols:[20,40]},
+    adv:{sigmas:[0.4,0.6,0.8,1.0,1.3,1.7,2.2],ks:[2.0,3.0,4.5,6.0,8.0],epsilons:[0.0,0.01,0.03,0.06],taus:[0.90,0.94,0.97,1.0],denoises:complexity>0.12?[0,1]:[1,2],bgTols:[20,35,55]},
     full:{sigmas:[0.4,0.6,0.8,1.0,1.4,2.0,2.6],ks:[2.0,3.0,4.5,6.0,8.0,10.0],epsilons:[0.0,0.01,0.03,0.06,0.10],taus:[0.88,0.92,0.96,0.99,1.0],denoises:complexity>0.12?[0,1]:[1,2],bgTols:[20,35,55]},
   };
   const P=PRESETS[speed];
